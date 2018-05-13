@@ -1,7 +1,40 @@
-# REST version of Spring PetClinic Sample Application (spring-framework-petclinic extend ) [![Build Status](https://travis-ci.org/spring-petclinic/spring-petclinic-rest.png?branch=master)](https://travis-ci.org/spring-petclinic/spring-petclinic-rest/)
+# REST version of Spring PetClinic Sample Application (spring-framework-petclinic extend) [![Build Status](https://travis-ci.org/spring-petclinic/spring-petclinic-rest.png?branch=master)](https://travis-ci.org/spring-petclinic/spring-petclinic-rest/)
 
 This backend version of the Spring Petclinic application only provides a REST API. **There is no UI**.
 The [spring-petclinic-angular project](https://github.com/spring-petclinic/spring-petclinic-angular) is a Angular 5 front-end application witch consumes the REST API.
+
+
+## Running in docker
+- To run in **development**:
+```
+git clone https://github.com/a114m/spring-petclinic-rest.git
+docker-compose up --build
+cd spring-petclinic-rest
+```
+
+- Instead to run in production using **Tomcat**
+```
+git clone https://github.com/a114m/spring-petclinic-rest.git
+cd spring-petclinic-rest
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
+```
+
+- If ever made change and wants to test it on **Tomcat locally** for some reason
+```
+git clone https://github.com/a114m/spring-petclinic-rest.git
+cd spring-petclinic-rest
+docker-compose --build -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.local.tomcat.yml up
+```
+
+	### Dockerfile
+It bases on OpenJDK 1.8 image, it tests and packages the app to war file, installs Tomcat and loads the app into it, and sets the default entrypoint and command to start Tomcat
+
+	### Docker-compose
+	Multiple docker-compose files are included:
+	- **docker-compose.yml** which defines **mysql** service and basic **web** service definition.
+	- **docker-compose.override.yml** this file is automatically loaded with `docker-compose up`, it's used for development thus it mounts the current project directory into the container and runs it using `mvnw spring-boot:run` for the ease of development inside container, it uses java:8 docker image.
+	- **docker-compose.prod.yml** this file has to be specified after `docker-compose.yml` to work, it pulls latest image that was build by the CI using our dockerfile.
+	- **docker-compose.local.tomcat.yml** this is additional file in case if testing the war packaging and the use of tomcat locally, it builds the dockerfile on the local machine and uses the resulting image, it has to be specified after `docker-compose.yml` and `docker-compose.prod.yml` respectively.
 
 ## Understanding the Spring Petclinic application with a few diagrams
 <a href="https://speakerdeck.com/michaelisvy/spring-petclinic-sample-application">See the presentation here</a>
@@ -44,8 +77,8 @@ Before do this, would be good to check properties defined in application-mysql.p
 ```
 spring.datasource.url = jdbc:mysql://localhost:3306/petclinic?useUnicode=true
 spring.datasource.username=pc
-spring.datasource.password=petclinic 
-spring.datasource.driver-class-name=com.mysql.jdbc.Driver 
+spring.datasource.password=petclinic
+spring.datasource.driver-class-name=com.mysql.jdbc.Driver
 spring.jpa.database=MYSQL
 spring.jpa.database-platform=org.hibernate.dialect.MySQLDialect
 spring.jpa.hibernate.ddl-auto=none
@@ -120,7 +153,3 @@ File -> Import -> Maven -> Existing Maven project
 The [issue tracker](https://github.com/spring-petclinic/spring-petclinic-rest/issues) is the preferred channel for bug reports, features requests and submitting pull requests.
 
 For pull requests, editor preferences are available in the [editor config](https://github.com/spring-petclinic/spring-petclinic-rest/blob/master/.editorconfig) for easy use in common text editors. Read more and download plugins at <http://editorconfig.org>.
-
-
-
-
