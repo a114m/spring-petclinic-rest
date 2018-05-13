@@ -2,7 +2,7 @@ version: '2'
 services:
   web:
     # build: .
-    image: a114m/petclinic:latest
+    image: petclinic/petclinic:latest
     ports:
       - '8080:8080'
     environment:
