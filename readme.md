@@ -2,51 +2,58 @@
 
 
 ## Files added to the repo:
-- [Jenkinsfile](./Jenkinsfile) defines jenkins pipeline in declarative syntax, it contains the steps to test, build, deploy to qualification environment upon qualification team confirmation, and it notifies by mail in case of success or failure (check the comments in the file).
+- [ansible directory](../ansible) containing scripts to install jenkins with dependencies, and contains:
+	- Ansible playbook file [configure-jenkins.yml](../ansible/configure-jenkins.yml)
+	- [jenkins-config](../ansible/jenkins-config) directory that contains jenkins configurations/plugins/jobs
 - Dockerfile and docker-compose*.yml files includes everything needed to build/test or run the app in dev/prod
-- [application*.properties](./src/main/resources) files are updated to use MySQL and read some configurations from env
+- [application*.properties](../src/main/resources) files are updated to use MySQL and read some configurations from env
 
+## Setting up Jenkins (Not tested yet)
+- To setup locally you'll need **vagrant** and **ansible** installed alog with **virtualbox**
+CD to [ansible/](../ansible/) directory
+Spin a new VM:
+```
+vagrant up
+```
 
-## Configuring Jenkins
-- Required plugins:
-	- Credentials Plugin
-	- Docker Pipeline
-	- Email Extension Plugin
-	- Git plugin
-	- Pipeline
+- Install the required roles using ansible-galaxy:
+```
+ansible-galaxy install openmicroscopy.docker
+ansible-galaxy install emmetog.jenkins
+```
 
+- Install jenkins using the playbook `configure-jenkins.yaml`:
+```
+ansible-playbook configure-jenkins.yml -i hosts
+```
 
-- For `Docker Pipeline` plugin to work, you'll need to add the `jenkins` user to `docker` group on the slaves machines, this can be done manually using the command:
+This should install jenkins with pre-loaded freestyle job to build and push petclinic docker image (This can be refined moving the job to petclinic repo outside anisble playbook scripts)
+
+## Configuring Jenkins and triggering the build (Tested)
+Visit jenkins on http://localhost:8080/
+
+- Configure Jenkins docker-build-step plugin to use docker command:
+
+	From jenkins sidebar >> **Manage Jenkins** >> **Configure System** >> under **Docker Builder** set Docker URL to `unix:///var/run/docker.sock`
+
+	You might need to add the user used by jenkins to docker group, this can be done manually be executing this on the machine assuming jenkins process is running under user `jenkins`: (This should be automated later through ansible task)
 	```
-	sudo usermode -aG docker jenkins
+	usermode -aG docker jenkins
 	```
 
-- Adding dockerhub registry credentials:
+- Add dockerhub registry credentials:
 
-	From jenkins left sidebar >> **Credentials** >> **Jenkins** >> **Global credentials (unrestricted)** >> **Add Credentials** from sidebar:
-	- Kind: Username with password
-	- ID: `petclinic_docker_creds` (if you set anything else you'll need to update `DOCKER_CRED_ID` in pipeline build parameters)
-	- Username: (use the attached dockerhub username)
-	- Password: (use the attached dockerhub password)
+	From jenkins front-page >> **petclinic-build** >> **Configure** >> under **Build** section >> under **Push Image** Docker command >> infront **Registry credentials** click **Add** >> and add the attached Username and Password for the docker repo `petclinic`
 
-
-## Starting the pipeline (Tested, weird NullPointerException when pushing image to dockerhub, thus I commented it)
-- From sidebar on home page >> **New Item** >> add name (ex: `petclinic`) >> **Pipeline**:
-	- Check the box: `GitHub project` and add the URL: `https://github.com/a114m/spring-petclinic-rest`
-	- Under **Pipeline**:
-		- Definition: Pipeline script from SCM
-		- SCM: Git
-		- Repository URL: `https://github.com/a114m/spring-petclinic-rest.git`
-		- Script Path: `Jenkinsfile`
-	- Save (Now the pipeline is ready to be triggered)
-	- From home page click on pipeline name you have chosen before
-	- From sidebar >> **Build with Parameters**:
-		- Enter development and QA teams emails, also dockerhub credentialsId in case you didn't use the default
-		- Click Build
-
-## Deploying to Qualification Environment (Tested, Email notifications requires SMTP server to work, thus I commented it for now)
-- After the build is triggered and succeeded it will prompt for deploying to QA env
-- By choose continue and it will deploy to the same worker machine and it can be accessible on: `http://<worker_ip>:9090/petclinic/`
+## Deploying using jenkins-ansible plugin (Not implemented yet)
+This part is not done yet, it's supposed to do the following:
+- Spin a new machine and install docker on it using ansible
+- Push docker-compose files to it (or clone the repo)
+- Execute: (this should pull latest built image and run it)
+	```
+	docker pull petclinic/petclinic:latest
+	docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
+	```
 
 
 ## Running in docker (Tested)
@@ -63,7 +70,7 @@ cd spring-petclinic-rest
 ```
 git clone https://github.com/a114m/spring-petclinic-rest.git
 cd spring-petclinic-rest
-BUILD_NUMBER=latest docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
 ```
 
 - If ever made change and wants to test it on **Tomcat locally** for some reason
